@@ -6,7 +6,7 @@ def readInstance(path):
     with open(path) as f:
         lines = f.readlines()
     nodes = {}
-    for i in range(6, 106):
+    for i in range(6, len(lines) - 1):
         splitted_line = lines[i].strip().split(' ')
         n_node, x, y = int(splitted_line[0]), int(splitted_line[1]), int(splitted_line[2])
         nodes[n_node] = (x, y)
@@ -51,20 +51,48 @@ def score(length_matrix, cycles):
         # score += sum(length_matrix[cycles[cycle][i], cycles[cycle][i + 1]] for i in range(len(cycles[cycle] - 1)))
     return score
 
+def score_diff(length_matrix, cycle, edge_index, node):
+    a, b = cycle[edge_index - 1], cycle[edge_index]
+    return length_matrix[a, node] + length_matrix[node, b] - length_matrix[a, b]
+    
 
+def greedy_cycle_heuristic(length_matrix, starting_node):
+    remaining_nodes = list(range(100))
+    starting_node_2 = np.argmax(length_matrix[starting_node, :])
+    remaining_nodes.remove(starting_node)
+    remaining_nodes.remove(starting_node_2)
+    cycles = {}
+    cycles[0] = [starting_node]
+    cycles[1] = [starting_node_2]
+    while len(remaining_nodes) > 0:
+        for cycle in cycles.keys():
+            scores = np.array([[score_diff(length_matrix, cycles[cycle], i, n) for i in range(len(cycles[cycle]))] for n in remaining_nodes])
+            node_to_insert_index, insert_index = np.unravel_index(np.argmin(scores), scores.shape)
+            node_to_insert = remaining_nodes[node_to_insert_index]
+            cycles[cycle].insert(insert_index, node_to_insert)
+            remaining_nodes.remove(node_to_insert)
+
+    return cycles
+
+
+
+def find_best_solution(func, length_matrix):
+    args = [(length_matrix, i) for i in range(100)]
+    # print(args)
+    solutions = mp.Pool().starmap(func, args)
+
+    scores = [score(length_matrix, i) for i in solutions]
+
+    return solutions[np.argmin(scores)]
 
 if __name__ == '__main__':
     length_matrix_kroa100 = readInstance('./kroB100.tsp')
 
-    length_matrix_kroa100 = np.array(length_matrix_kroa100)
-    args = [(length_matrix_kroa100, i) for i in range(100)]
-    solutions = mp.Pool().starmap(closest_neighbour_heuristic, args)
-    # solutions = []
-    # for i in range(100):
-    #     solutions.append(closest_neighbour_heuristic(length_matrix_kroa100, i))
 
-    scores = [score(length_matrix_kroa100, i) for i in solutions]
-    best_solution = solutions[np.argmin(scores)]
+
+
+
+    best_solution = find_best_solution(greedy_cycle_heuristic, np.array(length_matrix_kroa100))
 
 
     print(best_solution)
