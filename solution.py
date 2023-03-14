@@ -74,6 +74,33 @@ def greedy_cycle_heuristic(length_matrix, starting_node):
 
     return cycles
 
+def regret_cycle_heuristic(length_matrix, starting_node):
+    remaining_nodes = list(range(100))
+    starting_node_2 = np.argmax(length_matrix[starting_node, :])
+    remaining_nodes.remove(starting_node)
+    remaining_nodes.remove(starting_node_2)
+    cycles = {}
+    cycles[0] = [starting_node]
+    cycles[1] = [starting_node_2]
+    while len(remaining_nodes) > 0:
+        for cycle in cycles.keys():
+            scores = np.array([[score_diff(length_matrix, cycles[cycle], i, n) for i in range(len(cycles[cycle]))] for n in remaining_nodes])
+            node_to_insert_index = 0
+            _, y = scores.shape
+            if y == 1:
+                node_to_insert_index = np.argmin(scores)
+            else:
+                regret = np.diff(np.partition(scores, 1)[:, :2]).reshape(-1)
+                weight_regret = regret - 0.2 * np.min(scores, axis=1)
+                node_to_insert_index = np.argmax(weight_regret)
+            
+            node_to_insert = remaining_nodes[node_to_insert_index]
+            insert_index = np.argmin(scores[node_to_insert_index])
+            cycles[cycle].insert(insert_index, node_to_insert)
+            remaining_nodes.remove(node_to_insert)
+    
+    return cycles            
+
 
 
 def find_best_solution(func, length_matrix):
@@ -92,7 +119,7 @@ if __name__ == '__main__':
 
 
 
-    best_solution = find_best_solution(greedy_cycle_heuristic, np.array(length_matrix_kroa100))
+    best_solution = find_best_solution(regret_cycle_heuristic, np.array(length_matrix_kroa100))
 
 
     print(best_solution)
