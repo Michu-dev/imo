@@ -1,6 +1,8 @@
 import numpy as np
 import multiprocessing as mp
 from functools import partial
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 def readInstance(path):
     with open(path) as f:
@@ -11,6 +13,10 @@ def readInstance(path):
         n_node, x, y = int(splitted_line[0]), int(splitted_line[1]), int(splitted_line[2])
         nodes[n_node] = (x, y)
 
+    points = []
+    for v in nodes.values():
+        points.append([v[0], v[1]])
+
     length_matrix = []
     n_nodes = 100
 
@@ -19,7 +25,7 @@ def readInstance(path):
         for j in range(1, n_nodes + 1):
             length_matrix[i - 1].append(round(np.sqrt((nodes[i][0] - nodes[j][0])**2 + (nodes[i][1] - nodes[j][1])**2)))
     
-    return length_matrix
+    return length_matrix, np.array(points)
 
 def closest_neighbour_heuristic(length_matrix, starting_node):
     # length_matrix, starting_node = args
@@ -91,7 +97,7 @@ def regret_cycle_heuristic(length_matrix, starting_node):
                 node_to_insert_index = np.argmin(scores)
             else:
                 regret = np.diff(np.partition(scores, 1)[:, :2]).reshape(-1)
-                weight_regret = regret - 0.2 * np.min(scores, axis=1)
+                weight_regret = regret - 0.8 * np.min(scores, axis=1)
                 node_to_insert_index = np.argmax(weight_regret)
             
             node_to_insert = remaining_nodes[node_to_insert_index]
@@ -110,19 +116,40 @@ def find_best_solution(func, length_matrix):
 
     scores = [score(length_matrix, i) for i in solutions]
 
-    return solutions[np.argmin(scores)]
+    return solutions[np.argmin(scores)], int(min(scores))
+
+def draw_paths(points, cycles):
+    cycle1 = cycles[0]
+    cycle2 = cycles[1]
+    
+    c1 = np.array(points[cycle1,:])
+    c2 = np.array(points[cycle2,:])
+
+    plt.scatter(points[:, 0], points[:, 1])
+
+    plt.plot(c1[:, 0], c1[:, 1], color='red')
+    plt.plot(c2[:, 0], c2[:, 1], color='blue')
+
+    plt.show()
+
+# def range_with_floats(start, stop, step):
+#     while stop > start:
+#         yield start
+#         start += step
 
 if __name__ == '__main__':
-    length_matrix_kroa100 = readInstance('./kroB100.tsp')
+    path = './kroA100.tsp'
+    length_matrix_kroa100, points = readInstance(path)
 
+    plt.rc('figure', figsize=(8, 5))
+   
+    best_solution, best_score = find_best_solution(regret_cycle_heuristic, np.array(length_matrix_kroa100))
 
-
-
-
-    best_solution = find_best_solution(regret_cycle_heuristic, np.array(length_matrix_kroa100))
-
+    plt.subplots()
+    plt.suptitle(f"file: kroA100.tsp, solver: {regret_cycle_heuristic.__name__}, score: {best_score}")
 
     print(best_solution)
     print(len(best_solution[0]), len(best_solution[1]))
+    draw_paths(points, best_solution)
     # print(length_matrix_kroa100[0][0])
     # print(length_matrix_kroa100[0][1])
