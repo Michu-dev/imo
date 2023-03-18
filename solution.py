@@ -1,8 +1,8 @@
 import numpy as np
 import multiprocessing as mp
-from functools import partial
 import matplotlib.pyplot as plt
-import matplotlib as mpl
+import pandas as pd
+from IPython.display import display
 
 def readInstance(path):
     with open(path) as f:
@@ -27,9 +27,7 @@ def readInstance(path):
     
     return length_matrix, np.array(points)
 
-def closest_neighbour_heuristic(length_matrix, starting_node):
-    # length_matrix, starting_node = args
-    print(starting_node)
+def nearest_neighbour_heuristic(length_matrix, starting_node):
     remaining_nodes = list(range(100))
     starting_node_2 = np.argmax(length_matrix[starting_node, :])
     remaining_nodes.remove(starting_node)
@@ -52,9 +50,6 @@ def score(length_matrix, cycles):
         cycles[cycle] += [cycles[cycle][0]]
         for i in range(len(cycles[cycle]) - 1):
             score += length_matrix[cycles[cycle][i], cycles[cycle][i + 1]]
-        # print(length_matrix[cycles[cycle][i], cycles[cycle][i + 1]] for i in range(len(cycles[cycle] - 1)))
-        # print(sum(length_matrix[cycles[cycle][i], cycles[cycle][i + 1]] for i in range(len(cycles[cycle] - 1))))
-        # score += sum(length_matrix[cycles[cycle][i], cycles[cycle][i + 1]] for i in range(len(cycles[cycle] - 1)))
     return score
 
 def score_diff(length_matrix, cycle, edge_index, node):
@@ -111,12 +106,11 @@ def regret_cycle_heuristic(length_matrix, starting_node):
 
 def find_best_solution(func, length_matrix):
     args = [(length_matrix, i) for i in range(100)]
-    # print(args)
     solutions = mp.Pool().starmap(func, args)
 
     scores = [score(length_matrix, i) for i in solutions]
 
-    return solutions[np.argmin(scores)], int(min(scores))
+    return solutions[np.argmin(scores)], scores
 
 def draw_paths(points, cycles):
     cycle1 = cycles[0]
@@ -132,23 +126,21 @@ def draw_paths(points, cycles):
 
     plt.show()
 
-# def range_with_floats(start, stop, step):
-#     while stop > start:
-#         yield start
-#         start += step
 
 if __name__ == '__main__':
     paths = ['./kroA100.tsp', './kroB100.tsp']
+    results = []
     for path in paths:
 
         length_matrix, points = readInstance(path)
 
         plt.rc('figure', figsize=(8, 5))
-        heuristics = [closest_neighbour_heuristic, greedy_cycle_heuristic, regret_cycle_heuristic]
+        heuristics = [nearest_neighbour_heuristic, greedy_cycle_heuristic, regret_cycle_heuristic]
 
         for heuristic in heuristics:
 
-            best_solution, best_score = find_best_solution(heuristic, np.array(length_matrix))
+            best_solution, scores = find_best_solution(heuristic, np.array(length_matrix))
+            best_score = int(min(scores))
 
             plt.subplots()
             plt.suptitle(f"file: {path}, solver: {heuristic.__name__}, score: {best_score}")
@@ -157,5 +149,7 @@ if __name__ == '__main__':
             print(best_solution)
             print(len(best_solution[0]), len(best_solution[1]))
             draw_paths(points, best_solution)
-            # print(length_matrix_kroa100[0][0])
-            # print(length_matrix_kroa100[0][1])
+            results.append(dict(file=path, heuristic=heuristic.__name__, min=best_score, mean=int(np.mean(scores)), max=int(max(scores))))
+    
+    results_df = pd.DataFrame(results)
+    display(results_df)
