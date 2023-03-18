@@ -138,18 +138,24 @@ def draw_paths(points, cycles):
 #         start += step
 
 if __name__ == '__main__':
-    path = './kroA100.tsp'
-    length_matrix_kroa100, points = readInstance(path)
+    paths = ['./kroA100.tsp', './kroB100.tsp']
+    for path in paths:
 
-    plt.rc('figure', figsize=(8, 5))
-   
-    best_solution, best_score = find_best_solution(regret_cycle_heuristic, np.array(length_matrix_kroa100))
+        length_matrix, points = readInstance(path)
 
-    plt.subplots()
-    plt.suptitle(f"file: kroA100.tsp, solver: {regret_cycle_heuristic.__name__}, score: {best_score}")
+        plt.rc('figure', figsize=(8, 5))
+        heuristics = [closest_neighbour_heuristic, greedy_cycle_heuristic, regret_cycle_heuristic]
 
-    print(best_solution)
-    print(len(best_solution[0]), len(best_solution[1]))
-    draw_paths(points, best_solution)
-    # print(length_matrix_kroa100[0][0])
-    # print(length_matrix_kroa100[0][1])
+        for heuristic in heuristics:
+
+            best_solution, best_score = find_best_solution(heuristic, np.array(length_matrix))
+
+            plt.subplots()
+            plt.suptitle(f"file: {path}, solver: {heuristic.__name__}, score: {best_score}")
+
+
+            print(best_solution)
+            print(len(best_solution[0]), len(best_solution[1]))
+            draw_paths(points, best_solution)
+            # print(length_matrix_kroa100[0][0])
+            # print(length_matrix_kroa100[0][1])
