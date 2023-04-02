@@ -279,7 +279,7 @@ def plot_solution(coords, solution):
     plt.show()
 
 def show_results():
-    instances = ['kroB100.tsp']
+    instances = ['kroA100.tsp']
     initial_solvers = [regret_cycle_heuristic]
     score_results = []
     time_results = []
