@@ -1,0 +1,16 @@
+scores:
+          file                method    min   mean    max
+0  kroA200.tsp                  MSLS  35044  35790  36325
+1  kroA200.tsp  ILSSmallPerturbation  32190  33146  33975
+2  kroA200.tsp    ILSBigPerturbation  30370  30686  31361
+3  kroB200.tsp                  MSLS  34888  35826  36512
+4  kroB200.tsp  ILSSmallPerturbation  32312  33627  34344
+5  kroB200.tsp    ILSBigPerturbation  30538  30944  31247
+times:
+          file                method   min  mean   max
+0  kroA200.tsp                  MSLS  2230  2239  2248
+1  kroA200.tsp  ILSSmallPerturbation  2239  2239  2240
+2  kroA200.tsp    ILSBigPerturbation  2239  2239  2240
+3  kroB200.tsp                  MSLS  2201  2214  2224
+4  kroB200.tsp  ILSSmallPerturbation  2214  2214  2214
+5  kroB200.tsp    ILSBigPerturbation  2214  2214  2214
