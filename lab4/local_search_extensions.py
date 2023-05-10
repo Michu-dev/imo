@@ -291,6 +291,7 @@ class ILS:
         random_cycles = random_solution(len(self.length_matrix))
         best_cycles, _  = self.solve(random_cycles)
         best_score = score(self.length_matrix, best_cycles)
+        n_iterations = 1
         while time.time() - start < time_limit:
             cycles = deepcopy(best_cycles)
             cycles = self.perturbation(self.length_matrix, cycles)
@@ -299,8 +300,9 @@ class ILS:
             if new_score < best_score:
                 best_cycles = new_cycles
                 best_score = new_score
+            n_iterations += 1
         
-        return best_cycles, time.time() - start
+        return best_cycles, time.time() - start, n_iterations
                 
 
 def draw_path(coords, path, color='blue'):
@@ -329,7 +331,7 @@ def show_results(n=200):
         msls_solutions, times  = zip(*mp.Pool().map(solve, [n_iterations for _ in range(algorithm_runs)]))
         scores = [score(length_matrix, cs) for cs in msls_solutions]
 
-        score_results.append(dict(file=file, method="MSLS", min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores))))
+        score_results.append(dict(file=file, method="MSLS", min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores)), n_iterations=100))
         time_results.append(dict(file=file, method="MSLS", min=int(min(times)), mean=int(np.mean(times)), max=int(max(times))))
         time_limit = np.mean(times)
         best_solution_index = np.argmin(scores)
@@ -338,7 +340,7 @@ def show_results(n=200):
         plot_solution(coords, best_solution)
 
         for local_search_extension in [ILS(length_matrix, SmallPerturbation(10), SteepestSearch(length_matrix)), ILS(length_matrix, BigPerturbation(0.2), SteepestSearch(length_matrix))]:
-            solutions, times = zip(*mp.Pool().map(local_search_extension, [time_limit for _ in range(algorithm_runs)]))
+            solutions, times, n_iterations_done = zip(*mp.Pool().map(local_search_extension, [time_limit for _ in range(algorithm_runs)]))
             scores = [score(length_matrix, cs) for cs in solutions]
             best_solution_index = np.argmin(scores)
             best_solution = solutions[best_solution_index]
@@ -346,7 +348,7 @@ def show_results(n=200):
 
             plot_solution(coords, best_solution)
 
-            score_results.append(dict(file=file, method=type(local_search_extension).__name__+type(local_search_extension.perturbation).__name__, min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores))))
+            score_results.append(dict(file=file, method=type(local_search_extension).__name__+type(local_search_extension.perturbation).__name__, min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores)), n_iterations=np.mean(n_iterations_done)))
             time_results.append(dict(file=file, method=type(local_search_extension).__name__+type(local_search_extension.perturbation).__name__, min=int(min(times)), mean=int(np.mean(times)), max=int(max(times))))
 
 
