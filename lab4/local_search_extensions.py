@@ -281,10 +281,11 @@ class BigPerturbation:
 
 
 class ILS:
-    def __init__(self, length_matrix, perturbation, algorithm):
+    def __init__(self, length_matrix, perturbation, algorithm, local_search=True):
         self.length_matrix = length_matrix
         self.perturbation = perturbation
         self.solve = algorithm
+        self.local_search = local_search
 
     def __call__(self, time_limit):
         start = time.time()
@@ -295,8 +296,13 @@ class ILS:
         while time.time() - start < time_limit:
             cycles = deepcopy(best_cycles)
             cycles = self.perturbation(self.length_matrix, cycles)
-            new_cycles, _ = self.solve(cycles)
+            if self.local_search:
+                new_cycles, _ = self.solve(cycles)
+            else:
+                new_cycles = cycles
+            
             new_score = score(self.length_matrix, new_cycles)
+                            
             if new_score < best_score:
                 best_cycles = new_cycles
                 best_score = new_score
@@ -339,7 +345,7 @@ def show_results(n=200):
         print(f'file: {file}, method: MSLS, score: {scores[best_solution_index]}')
         plot_solution(coords, best_solution)
 
-        for local_search_extension in [ILS(length_matrix, SmallPerturbation(10), SteepestSearch(length_matrix)), ILS(length_matrix, BigPerturbation(0.2), SteepestSearch(length_matrix))]:
+        for local_search_extension in [ILS(length_matrix, SmallPerturbation(10), SteepestSearch(length_matrix)), ILS(length_matrix, BigPerturbation(0.2), SteepestSearch(length_matrix), local_search=False), ILS(length_matrix, BigPerturbation(0.2), SteepestSearch(length_matrix))]:
             solutions, times, n_iterations_done = zip(*mp.Pool().map(local_search_extension, [time_limit for _ in range(algorithm_runs)]))
             scores = [score(length_matrix, cs) for cs in solutions]
             best_solution_index = np.argmin(scores)

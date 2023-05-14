@@ -1,0 +1,26 @@
+file: kroA200.tsp, method: MSLS, score: 35652.0
+file: kroA200.tsp, perturbation: SmallPerturbation, method: ILS, score: 32469.0
+file: kroA200.tsp, perturbation: BigPerturbation, method: ILS, score: 30541.0
+file: kroA200.tsp, perturbation: BigPerturbation, method: ILS, score: 30643.0
+file: kroB200.tsp, method: MSLS, score: 35250.0
+file: kroB200.tsp, perturbation: SmallPerturbation, method: ILS, score: 33177.0
+file: kroB200.tsp, perturbation: BigPerturbation, method: ILS, score: 30618.0
+file: kroB200.tsp, perturbation: BigPerturbation, method: ILS, score: 30604.0
+          file                method    min   mean    max  n_iterations
+0  kroA200.tsp                  MSLS  35652  35992  36233         100.0
+1  kroA200.tsp  ILSSmallPerturbation  32469  33104  34189        1691.8
+2  kroA200.tsp    ILSBigPerturbation  30541  31035  31460       23041.8
+3  kroA200.tsp    ILSBigPerturbation  30643  30762  31128        3479.2
+4  kroB200.tsp                  MSLS  35250  36149  36717         100.0
+5  kroB200.tsp  ILSSmallPerturbation  33177  33992  35025        1569.4
+6  kroB200.tsp    ILSBigPerturbation  30618  31094  31639       21247.3
+7  kroB200.tsp    ILSBigPerturbation  30604  30920  31307        3784.7
+          file                method   min  mean   max
+0  kroA200.tsp                  MSLS  2148  2160  2171
+1  kroA200.tsp  ILSSmallPerturbation  2160  2160  2161
+2  kroA200.tsp    ILSBigPerturbation  2160  2160  2160
+3  kroA200.tsp    ILSBigPerturbation  2160  2160  2160
+4  kroB200.tsp                  MSLS  2141  2155  2166
+5  kroB200.tsp  ILSSmallPerturbation  2155  2155  2156
+6  kroB200.tsp    ILSBigPerturbation  2155  2155  2155
+7  kroB200.tsp    ILSBigPerturbation  2155  2155  2155
