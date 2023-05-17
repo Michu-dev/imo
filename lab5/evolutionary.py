@@ -322,24 +322,106 @@ def argmin(x, f=identity):
     return min(np.arange(len(x)), key=lambda i: f(x[i]))
     
 class Evolutionary:
-    def __init__(self, length_matrix, algorithm):
+    def __init__(self, length_matrix, algorithm, local_search=True, patience=1000):
         self.length_matrix = length_matrix
         self.solve = algorithm
-    
+        self.local_search = local_search
+        self.patience = patience
+
+    def combine(self, sol1, sol2):
+        sol1, sol2 = deepcopy(sol1), deepcopy(sol2)
+
+        remaining = []
+        for cycle1 in sol1:
+            n = len(cycle1)
+            if n == 1:
+                continue
+            for i in range(n):
+                p, q = cycle1[i], cycle1[(i + 1) % n]
+                if p == -1 or q == -1 or p == q:
+                    continue
+                found = False
+                for cycle2 in sol2:
+                    m = len(cycle2)
+                    for j in range(m):
+                        u, v = cycle2[j], cycle2[(j + 1) % m]
+                        if (p == u and q == v) or (p == v and q == u):
+                            found = True
+                            break
+                    if found:
+                        break
+                if not found:
+                    remaining.append(cycle1[i])
+                    remaining.append(cycle1[(i + 1) % n])
+                    cycle1[i] = -1
+                    cycle1[(i + 1) % n] = -1
+            
+            for i in range(1, n):
+                x, y, z = cycle1[(i - 1) % n], cycle1[i], cycle1[(i + 1) % n]
+                if x == z == -1 and y != -1:
+                    remaining.append(y)
+                    cycle1[i] = -1
+
+            for i in range(1, n):
+                x = cycle1[i]
+                if x != -1 and np.random.rand() < 0.2:
+                    remaining.append(x)
+                    cycle1[i] = -1
+
+        a = [x for x in sol1[0] if x != -1]
+        b = [x for x in sol1[1] if x != -1]
+        assert len(a) + len(b) + len(remaining) == 200
+        return regret_cycle_perturbation(self.length_matrix, (a, b), remaining)[0]
+
     def __call__(self, time_limit, pop_size=20):
         start = time.time()
         population = []
         n = len(self.length_matrix)
         while len(population) < pop_size:
-            solution = self.solve(random_solution(n))
+            solution, _ = self.solve(random_solution(n))
             if solution not in population:
                 population.append(solution)
         
         population = [(x, score(self.length_matrix, x)) for x in population]
-        n_iterations = 0 
+        n_iterations = last_improvement = best_index = last_mutation = 0
+
+        best_index = argmin(population, lambda x: x[1])
+        best_solution, best_score = population[best_index]
+        last_best = best_score
+
+
         while time.time() - start < time_limit:
+            n_iterations += 1
 
+            population_indexes = np.arange(pop_size)
+            np.random.shuffle(population_indexes)
 
+            worst_index = argmax(population, lambda x: x[1])
+            worst_solution, worst_score = population[worst_index]
+
+            solution1, score1 = population[population_indexes[0]]
+            solution2, score2 = population[population_indexes[1]]
+
+            solution = self.combine(solution1, solution2)
+            if self.local_search:
+                solution = self.solve(solution)[0]
+            
+            solution_score = score(self.length_matrix, solution)
+            print(f'{score1} + {score2} -> {solution_score}')
+
+            if solution not in [p[0] for p in population] and solution_score < worst_score:
+                population[worst_index] = solution, solution_score
+
+            best_index = argmin(population, lambda x: x[1])
+            best_solution, best_score = population[best_index]
+            if best_score < last_best:
+                last_best = best_score
+                last_improvement = n_iterations
+
+            if n_iterations - last_improvement > self.patience:
+                break
+
+        return best_solution, time.time() - start, n_iterations
 
 
                 
@@ -366,29 +448,45 @@ def show_results(n=200):
 
     for file in paths:
         length_matrix, coords = read_instance(file)
-        solve = MSLS(length_matrix, SteepestSearch(length_matrix))
-        msls_solutions, times  = zip(*mp.Pool().map(solve, [n_iterations for _ in range(algorithm_runs)]))
-        scores = [score(length_matrix, cs) for cs in msls_solutions]
-
-        score_results.append(dict(file=file, method="MSLS", min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores)), n_iterations=100))
-        time_results.append(dict(file=file, method="MSLS", min=int(min(times)), mean=int(np.mean(times)), max=int(max(times))))
-        time_limit = np.mean(times)
+        solve = Evolutionary(length_matrix, SteepestSearch(length_matrix), True, 1000)
+        time_limit = 600
+        solutions, times, n_iterations_done = zip(*mp.Pool().map(local_search_extension, [time_limit for _ in range(algorithm_runs)]))
         best_solution_index = np.argmin(scores)
-        best_solution = msls_solutions[best_solution_index]
-        print(f'file: {file}, method: MSLS, score: {scores[best_solution_index]}')
+        best_solution = solutions[best_solution_index]
+        print(f'file: {file}, method: Evolutionary, score: {scores[best_solution_index]}')
+
         plot_solution(coords, best_solution)
 
-        for local_search_extension in [ILS(length_matrix, SmallPerturbation(10), SteepestSearch(length_matrix)), ILS(length_matrix, BigPerturbation(0.2), SteepestSearch(length_matrix), local_search=False), ILS(length_matrix, BigPerturbation(0.2), SteepestSearch(length_matrix))]:
-            solutions, times, n_iterations_done = zip(*mp.Pool().map(local_search_extension, [time_limit for _ in range(algorithm_runs)]))
-            scores = [score(length_matrix, cs) for cs in solutions]
-            best_solution_index = np.argmin(scores)
-            best_solution = solutions[best_solution_index]
-            print(f'file: {file}, perturbation: {type(local_search_extension.perturbation).__name__}, method: {type(local_search_extension).__name__}, score: {scores[best_solution_index]}')
+        score_results.append(dict(file=file, method="Evolutionary", min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores)), n_iterations=np.mean(n_iterations_done)))
+        time_results.append(dict(file=file, method="Evolutionary", min=int(min(times)), mean=int(np.mean(times)), max=int(max(times))))
 
-            plot_solution(coords, best_solution)
 
-            score_results.append(dict(file=file, method=type(local_search_extension).__name__+type(local_search_extension.perturbation).__name__, min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores)), n_iterations=np.mean(n_iterations_done)))
-            time_results.append(dict(file=file, method=type(local_search_extension).__name__+type(local_search_extension.perturbation).__name__, min=int(min(times)), mean=int(np.mean(times)), max=int(max(times))))
+        
+
+        # scores = [score(length_matrix, cs) for cs in solutions]
+        # solve = MSLS(length_matrix, SteepestSearch(length_matrix))
+        # msls_solutions, times  = zip(*mp.Pool().map(solve, [n_iterations for _ in range(algorithm_runs)]))
+        # scores = [score(length_matrix, cs) for cs in msls_solutions]
+
+        # score_results.append(dict(file=file, method="MSLS", min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores)), n_iterations=100))
+        # time_results.append(dict(file=file, method="MSLS", min=int(min(times)), mean=int(np.mean(times)), max=int(max(times))))
+        # time_limit = np.mean(times)
+        # best_solution_index = np.argmin(scores)
+        # best_solution = msls_solutions[best_solution_index]
+        # print(f'file: {file}, method: MSLS, score: {scores[best_solution_index]}')
+        # plot_solution(coords, best_solution)
+
+        # for local_search_extension in [ILS(length_matrix, SmallPerturbation(10), SteepestSearch(length_matrix)), ILS(length_matrix, BigPerturbation(0.2), SteepestSearch(length_matrix), local_search=False), ILS(length_matrix, BigPerturbation(0.2), SteepestSearch(length_matrix))]:
+        #     solutions, times, n_iterations_done = zip(*mp.Pool().map(local_search_extension, [time_limit for _ in range(algorithm_runs)]))
+        #     scores = [score(length_matrix, cs) for cs in solutions]
+        #     best_solution_index = np.argmin(scores)
+        #     best_solution = solutions[best_solution_index]
+        #     print(f'file: {file}, perturbation: {type(local_search_extension.perturbation).__name__}, method: {type(local_search_extension).__name__}, score: {scores[best_solution_index]}')
+
+        #     plot_solution(coords, best_solution)
+
+        #     score_results.append(dict(file=file, method=type(local_search_extension).__name__+type(local_search_extension.perturbation).__name__, min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores)), n_iterations=np.mean(n_iterations_done)))
+        #     time_results.append(dict(file=file, method=type(local_search_extension).__name__+type(local_search_extension.perturbation).__name__, min=int(min(times)), mean=int(np.mean(times)), max=int(max(times))))
 
 
 
