@@ -92,6 +92,8 @@ def regret_cycle_perturbation(length_matrix, cycles, remaining_nodes):
     start_time = time.time()
     while len(remaining_nodes) > 0:
         for cycle in cycles:
+            if not remaining_nodes:
+                break
             scores = np.array([[delta_insert(length_matrix, cycle, i, n) for i in range(len(cycle))] for n in remaining_nodes])
             node_to_insert_index = 0
             _, y = scores.shape
@@ -378,12 +380,13 @@ class Evolutionary:
         population = []
         n = len(self.length_matrix)
         while len(population) < pop_size:
+            # print(len(population))
             solution, _ = self.solve(random_solution(n))
             if solution not in population:
                 population.append(solution)
         
         population = [(x, score(self.length_matrix, x)) for x in population]
-        n_iterations = last_improvement = best_index = last_mutation = 0
+        n_iterations, last_improvement, best_index, last_mutation = 0, 0, 0, 0
 
         best_index = argmin(population, lambda x: x[1])
         best_solution, best_score = population[best_index]
@@ -407,9 +410,10 @@ class Evolutionary:
                 solution = self.solve(solution)[0]
             
             solution_score = score(self.length_matrix, solution)
-            print(f'{score1} + {score2} -> {solution_score}')
+            # print(f'{score1} + {score2} -> {solution_score}')
 
             if solution not in [p[0] for p in population] and solution_score < worst_score:
+                # print('Bench 2')
                 population[worst_index] = solution, solution_score
 
             best_index = argmin(population, lambda x: x[1])
@@ -448,17 +452,21 @@ def show_results(n=200):
 
     for file in paths:
         length_matrix, coords = read_instance(file)
-        solve = Evolutionary(length_matrix, SteepestSearch(length_matrix), True, 1000)
-        time_limit = 600
-        solutions, times, n_iterations_done = zip(*mp.Pool().map(local_search_extension, [time_limit for _ in range(algorithm_runs)]))
-        best_solution_index = np.argmin(scores)
-        best_solution = solutions[best_solution_index]
-        print(f'file: {file}, method: Evolutionary, score: {scores[best_solution_index]}')
+        methods = [('No local', Evolutionary(length_matrix, SteepestSearch(length_matrix), True, 1000)),
+                   ('With local', Evolutionary(length_matrix, SteepestSearch(length_matrix), False, 1000))]
+        
+        for desc, solve in methods:
+            time_limit = 2160
+            solutions, times, n_iterations_done = zip(*mp.Pool().map(solve, [time_limit for _ in range(algorithm_runs)]))
+            scores = [score(length_matrix, cs) for cs in solutions]
+            best_solution_index = np.argmin(scores)
+            best_solution = solutions[best_solution_index]
+            print(f'file: {file}, method: Evolutionary {desc}, score: {scores[best_solution_index]}')
 
-        plot_solution(coords, best_solution)
+            plot_solution(coords, best_solution)
 
-        score_results.append(dict(file=file, method="Evolutionary", min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores)), n_iterations=np.mean(n_iterations_done)))
-        time_results.append(dict(file=file, method="Evolutionary", min=int(min(times)), mean=int(np.mean(times)), max=int(max(times))))
+            score_results.append(dict(file=file, method=f"Evolutionary {desc}", min=int(min(scores)), mean=int(np.mean(scores)), max=int(max(scores)), n_iterations=np.mean(n_iterations_done)))
+            time_results.append(dict(file=file, method=f"Evolutionary {desc}", min=int(min(times)), mean=int(np.mean(times)), max=int(max(times))))
 
 
         

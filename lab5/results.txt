@@ -1,0 +1,25 @@
+file: kroA200.tsp, method: Evolutionary, score: 29494.0
+file: kroB200.tsp, method: Evolutionary, score: 29840.0
+          file        method    min   mean    max  n_iterations
+0  kroA200.tsp  Evolutionary  29494  30375  30659        1737.3
+1  kroB200.tsp  Evolutionary  29840  30797  31177        1662.1
+          file        method   min  mean   max
+0  kroA200.tsp  Evolutionary  2025  2146  2160
+1  kroB200.tsp  Evolutionary  2148  2159  2160
+
+
+
+file: kroA200.tsp, method: Evolutionary With local, score: 29672.0
+file: kroA200.tsp, method: Evolutionary No local, score: 30382.0
+file: kroB200.tsp, method: Evolutionary With local, score: 30604.0
+file: kroB200.tsp, method: Evolutionary No local, score: 30584.0
+          file                   method    min   mean    max  n_iterations
+0  kroA200.tsp    Evolutionary With local  29672  30391  30816        1883.6
+1  kroA200.tsp  Evolutionary No local  30382  30671  31308        2718.1
+2  kroB200.tsp    Evolutionary With local  30604  30885  31428        1467.7
+3  kroB200.tsp  Evolutionary No local  30584  30974  31304        2906.7
+          file                   method   min  mean   max
+0  kroA200.tsp    Evolutionary With local  1642  2025  2160
+1  kroA200.tsp  Evolutionary No local   882  1183  1349
+2  kroB200.tsp    Evolutionary With local  2153  2159  2161
+3  kroB200.tsp  Evolutionary No local   831  1172  1481
